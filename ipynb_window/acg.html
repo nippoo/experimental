@@ -2,33 +2,64 @@
 <meta charset="utf-8">
 <style>
 
-.barpl rect {
-  fill: black;
+body
+{
+  background-color: black;
+}
+
+svg {
+  fill: white;
 }
 
 </style>
-<svg class="barpl"></svg>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 
-var data = [4, 8, 15, 16, 23, 42, 40, 40, 300, 4, 10, 10, 4, 300, 40, 40, 42, 23, 16, 15, 8, 4];
+function random_number(min,max) {
 
-var width = 120,
-    height = 120;
+    return (Math.round((max-min) * Math.random() + min));
+}
 
-var barWidth = width/data.length;
+function add_ccg()
+{
 
-var barpl = d3.select(".barpl")
-    .attr("height", height)
-    .attr("width", width);
+var bins = new Array;
 
-var bar = barpl.selectAll("g")
-    .data(data)
-  .enter().append("g")
-      .attr("transform", function(i, d) { return "translate(" + d * barWidth + "," + (height - i) + ")"; });
+for (var element=0; element<20; element++) {
+    bins[element] = random_number(0,120);
+}
 
-bar.append("rect")
-    .attr("width", barWidth)
-    .attr("height", function(d) { return d + "px"});
+    var width = 120,
+        height = 120;
+
+    var barpl = d3.select("body").append("svg")
+        .attr("height", height)
+        .attr("width", width);
+
+    var barWidth = width/bins.length;
+
+    // var bar = barpl.selectAll("g")
+    //     .data(bins)
+    //   .enter().append("g")
+    //       .attr("transform", function(d, i) { return "translate(" + i * barWidth + "," + (height - d) + ")"; });
+
+    barpl.selectAll("rect")
+    .data(bins)
+    .enter().append("rect")
+        .attr("width", barWidth + 1)
+        .attr("height", function(d) { return d + "px"})
+        .attr("transform", function(d, i) { return "translate(" + i * barWidth + "," + (height - d) + ")"; });
+}
 
 </script>
+<body>
+    <script>
+console.time("benchmark");
+console.log("Adding 1000 correlograms")
+for (var i = 0; i < 1000; i++) {
+    add_ccg()
+};
+console.timeEnd("benchmark");
+</script>
+</body>
+</html>
