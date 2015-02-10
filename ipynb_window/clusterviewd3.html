@@ -2,6 +2,8 @@
 <meta charset="utf-8">
 <script src="d3.js"></script>
 
+<link rel="stylesheet" href="clusterviewd3.css">
+
 <div id="cv"></div>
 <p id="sortby">Changing this will trigger an update<select></select></p>
 
@@ -32,7 +34,8 @@ function generate_random_cluster_info(num)
             quality: Math.random(),
             nchannels: random_number(10, 1000),
             nspikes: random_number(500, 1000000),
-            ccg: bins
+            ccg: bins,
+            selected: false
     };
 
     return clusterInfo;
@@ -55,13 +58,9 @@ function generate_all_clusters()
 
 <script>
 
-var clusterView = d3.select("#cv")
-                    .style("background-color", "#ededed")
-                    .style("width", "100%");
-
 function redraw()
 {
-    var cluster = clusterView.selectAll(".cluster")
+    var cluster = d3.select("#cv").selectAll(".cluster")
                     .data(clusters, function(d) { return d.id; });
 
 //
@@ -70,16 +69,9 @@ function redraw()
 
     var clusterEnter = cluster.enter()
                             .insert("div")
-                            .attr("class", "cluster")
-                            .style("display", "inline-block")
-                            .style("margin",  "5px")
-                            .style("padding-top",  "10px")
-                            .style("background-color",  "white")
-                            .style("border-radius",  "4px")
-                            .style("border",  "3px solid black")
-                            .style("text-align",  "center")
-                            .style("width", "130px")
-                            .style("fill-opacity", 0);
+                            .attr("class", function (d) {return (d.selected) ? "cluster sel" : "cluster";})
+                            .style("fill-opacity", 0)
+                            .on("click", clusterClicked);
 
     var lineFunction = d3.svg.line()
                          .x(function(d, i) { return width-(i*barWidth); })
@@ -109,10 +101,8 @@ function redraw()
 //
 
     var clusterUpdate = d3.transition(cluster)
-      .style("fill-opacity", 1);
-
-    clusterUpdate.select(".cluster");
-
+      .style("fill-opacity", 1)
+      .attr("class", function (d) {return (d.selected) ? "cluster sel" : "cluster";});
 //
 // Clusters to remove
 //
@@ -120,9 +110,23 @@ function redraw()
     var clusterExit = d3.transition(cluster.exit())
         .style("fill-opacity", 0)
         .remove();
+}
 
-    clusterExit.select(".cluster");
+function clusterClicked(d, ev) {
+    // If we're not doing a multi-selection here, then deselect all other elements first
 
+    if( !(d3.event.metaKey) && !(d3.event.ctrlKey)) {
+        d3.selectAll('.sel')
+        .classed("sel", function(d){
+            d.selected = false;
+            return false;}
+            );
+        d.selected = !d.selected;
+    }
+    else {
+        d.selected = true;
+    }
+    redraw();
 }
 
 function change() {
