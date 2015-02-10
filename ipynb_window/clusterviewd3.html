@@ -18,7 +18,7 @@ function generate_random_cluster_info(num)
 {
 
     var bins = [];
-    var nbins = 41; // must be odd!
+    var nbins = 11; // must be odd!
 
     bins[0] = 0
     bins[nbins] = 0
@@ -44,9 +44,9 @@ function generate_random_cluster_info(num)
 function generate_all_clusters()
 {
     var clusters = []
-    var nclusters = 4
+    var nclusters = 5
 
-    for (var i = 0; i < nclusters; i++)
+    for (var i = 3; i <= nclusters; i++)
     {
         clusters.push(generate_random_cluster_info(i));
     }
@@ -60,18 +60,19 @@ function generate_all_clusters()
 
 function redraw()
 {
-    var cluster = d3.select("#cv").selectAll(".cluster")
-                    .data(clusters, function(d) { return d.id; });
-
 //
 // Clusters entering the view
 //
+    var cluster = d3.select("#cv").selectAll(".cluster")
+            .data(clusters, function(d) { return d.id; });
 
     var clusterEnter = cluster.enter()
                             .insert("div")
                             .attr("class", function (d) {return (d.selected) ? "cluster sel" : "cluster";})
                             .style("fill-opacity", 0)
-                            .on("click", clusterClicked);
+                            .on('mousedown', function(d) {
+                                clusterClicked(d, this);
+                            });
 
     var lineFunction = d3.svg.line()
                          .x(function(d, i) { return width-(i*barWidth); })
@@ -112,27 +113,48 @@ function redraw()
         .remove();
 }
 
-function clusterClicked(d, ev) {
-    // If we're not doing a multi-selection here, then deselect all other elements first
+function clusterClicked(d, node) {
 
-    if( !(d3.event.metaKey) && !(d3.event.ctrlKey)) {
-        d3.selectAll('.sel')
-        .classed("sel", function(d){
-            d.selected = false;
-            return false;}
-            );
-        d.selected = !d.selected;
+    cls = d3.selectAll('.cluster')
+
+    // first, deal with selection ranges
+    if (d3.event.shiftKey) {
+        var firstSelectedIndex, lastSelectedIndex, currentIndex;
+
+            cls.each(function(dl, i) {
+            if (dl.selected) {
+              firstSelectedIndex || (firstSelectedIndex = i);
+              lastSelectedIndex = i;
+            }
+            if (this === node) currentIndex = i;
+          });
+          var min = Math.min(firstSelectedIndex, lastSelectedIndex, currentIndex);
+          console.log(min);
+          var max = Math.max(firstSelectedIndex, lastSelectedIndex, currentIndex);
+
+          // select all between first and last selected
+          // when clicked inside a selection
+          cls.each(function(d, i) {
+
+            // preserve state for additive selection
+            d.selected = ((d3.event.ctrlKey || d3.event.metaKey) && d._selected) || (i >= min && i <= max);
+          });
+        }
+    else
+    {
+      // additive select with `ctrl` key
+      if (!(d3.event.ctrlKey || d3.event.metaKey)) {
+        cls.each(function(d) { d.selected = false; });
+      }
+      d.selected = !d.selected;
     }
-    else {
-        d.selected = true;
-    }
+
     redraw();
 }
 
 function change() {
-
-  d3.transition()
-      .each(redraw);
+    d3.transition(500)
+        .each(redraw);
 }
 
 </script>
@@ -144,11 +166,13 @@ console.time("pageLoadTime");
 
 var width = 110,
 height = 110;
+
 clusters = generate_all_clusters();
-redraw();
 
 var menu = d3.select("#sortby select")
     .on("change", change);
+
+redraw();
 
 menu.selectAll("option")
     .data(clusters)
